@@ -41,6 +41,7 @@ struct State
 		if(cursor_pos.x>(text_view.position.x+text_view.size.x-1)) text_view.position.x=cursor_pos.x-text_view.size.x+1;
 		if(cursor_pos.y<text_view.position.y) text_view.position.y=cursor_pos.y;
 		if(cursor_pos.y>(text_view.position.y+text_view.size.y-1)) text_view.position.y=cursor_pos.y-text_view.size.y+1;
+		// si possono usare anche assegnazioni con min e max per tenere cursore nei bordi
 	}
 };
 
@@ -51,21 +52,81 @@ void handle(const sf::Event::Closed &, State &gs)
 	gs.window.close();
 }
 
+void handle(const sf::Event::KeyPressed &keyPressed, State &gs)
+{
+	switch(keyPressed.scancode)
+	{
+		case (sf::Keyboard::Scancode::Up):
+		if(gs.cursor_pos.y==0) return;
+		gs.cursor_pos.y--;
+		if(gs.log[gs.cursor_pos.y].size()<gs.cursor_pos.x) gs.cursor_pos.x=gs.log[gs.cursor_pos.y].size();
+		// oppure gs.cursor_pos.x=std::min((int)gs.log[gs.cursor_pos.y].size(), gs.cursor_pos.x);
+		break;
+
+		case (sf::Keyboard::Scancode::Down):
+		if(gs.cursor_pos.y==gs.log.size()-1) return;
+		gs.cursor_pos.y++;
+		if(gs.log[gs.cursor_pos.y].size()<gs.cursor_pos.x) gs.cursor_pos.x=gs.log[gs.cursor_pos.y].size();
+		break;
+
+		case (sf::Keyboard::Scancode::Left):
+		if(gs.cursor_pos.x==0)
+		{
+			if(gs.cursor_pos.y==0) return;
+			gs.cursor_pos.y--;
+			gs.cursor_pos.x=gs.log[gs.cursor_pos.y].size();
+		}
+		else gs.cursor_pos.x--;
+		break;
+
+		/* oppure
+		if (gs.cursor_pos.x>0 || gs.cursor_pos.y>0)
+		{
+			gs.cursor_pos.x--;
+			if(gs.cursor_pos.x<0)
+			{
+				gs.cursor_pos.y--;
+				x=gs.log[gs.cursor_pos.y].size();
+			}
+		}
+		*/
+
+		case (sf::Keyboard::Scancode::Right):
+		if(gs.cursor_pos.x==gs.log[gs.cursor_pos.y].size())
+		{
+			if(gs.cursor_pos.y==gs.log.size()-1) return;
+			gs.cursor_pos.y++;
+			gs.cursor_pos.x=0;
+		}
+		else gs.cursor_pos.x++;
+		break;
+	}
+
+	gs.adjustView();
+}
+
 void handle(const sf::Event::TextEntered &textEnter, State &gs)
 {
-	unsigned last = gs.log.size() - 1;
+	//unsigned last = gs.log.size() - 1;
+	unsigned current_line=gs.cursor_pos.y;
+	unsigned current_char=gs.cursor_pos.x;
+
 	if (textEnter.unicode == '\n' || textEnter.unicode == '\r') // enter
 	{
-		gs.log.emplace_back("");
+		std::string buffer=gs.log[current_line].substr((size_t)current_char);
+		gs.log[current_line].erase((size_t)current_char);
+		gs.log.insert(gs.log.begin()+current_line+1, buffer);
 		//fix cursor
 		gs.cursor_pos.x=0;
-		gs.cursor_pos.y+=1;
+		gs.cursor_pos.y++;
 	}
+
 	else if (textEnter.unicode >= ' ' && textEnter.unicode <= '~') // printable char
 	{
-		gs.log[last] += static_cast<char>(textEnter.unicode);
+		char character=static_cast<char>(textEnter.unicode);
+		gs.log[current_line].insert (current_char, 1, character);
 		//fix cursor
-		gs.cursor_pos.x+=1;
+		gs.cursor_pos.x++;
 	}
 
 	gs.adjustView();
@@ -105,7 +166,7 @@ void doGraphics(State &gs)
 	int lines_to_print=std::min(static_cast<unsigned>(gs.log.size()-first_line), static_cast<unsigned>(gs.text_view.size.y));
 	for (std::size_t i=0; i<lines_to_print; ++i)
 	{
-		logText.setPosition(Vector2iTo2f({FONT_WIDTH, static_cast<int>(i*FONT_SIZE+(2*FONT_SIZE))}));
+		logText.setPosition(Vector2iTo2f({FONT_WIDTH, static_cast<int>(i*FONT_SIZE+(2*FONT_SIZE))}));	//2* per linea di debug
 		if(gs.text_view.position.x<gs.log[i+first_line].size())
 		{
 			logText.setString(gs.log[i+first_line].substr((size_t)gs.text_view.position.x, (size_t)gs.text_view.size.x));
