@@ -35,8 +35,19 @@ struct Ball
 		speed=ball_initial_speed;
 		angle=ball_initial_angle;
 	}
-	void move(float elapsed)
+
+	sf::Angle reflect_horizontal(sf::Angle angle)
 	{
+
+	}
+	sf::Angle reflect_vertical(sf::Angle angle)
+	{
+
+	}
+	void move(float elapsed, sf::RenderWindow& window)
+	{
+		if(position.x<=0 || position.x>=window.getSize().x-radius) reflect_horizontal(sf::degrees(angle));
+		else if(position.y>=window.getSize().y) reflect_vertical(sf::degrees(angle));
 		sf::Vector2f displacement=sf::Vector2f(speed*elapsed, sf::degrees(angle));
 		position+=displacement;
 	}
