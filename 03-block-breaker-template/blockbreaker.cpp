@@ -15,7 +15,7 @@ const float ball_radius=10.f;
 const sf::Vector2f paddle_size={100.f, 16.f};
 
 const float ball_initial_speed=200;
-const float ball_initial_angle=-90;
+const float ball_initial_angle=-100;
 const float paddle_initial_speed=500;
 
 struct Ball
@@ -24,7 +24,7 @@ struct Ball
 	sf::Vector2f position;
 	sf::Texture texture;
 	float speed;
-	float angle;
+	sf::Angle angle;
 
 	Ball()
 	{
@@ -33,22 +33,24 @@ struct Ball
 		texture=sf::Texture(ball_png, ball_png_len);
 		texture.setSmooth(1);
 		speed=ball_initial_speed;
-		angle=ball_initial_angle;
+		angle=sf::Angle(sf::degrees(ball_initial_angle));
 	}
 
-	sf::Angle reflect_horizontal(sf::Angle angle)
+	void reflect_horizontal()
 	{
-
+		sf::Vector2f cart_angle(1, angle);
+		cart_angle.x=-cart_angle.x;
+		angle=cart_angle.angle();
 	}
-	sf::Angle reflect_vertical(sf::Angle angle)
+	void reflect_vertical()
 	{
-
+		sf::Vector2f cart_angle(1, angle);
+		cart_angle.y=-cart_angle.y;
+		angle=cart_angle.angle();
 	}
-	void move(float elapsed, sf::RenderWindow& window)
+	void move(float elapsed)
 	{
-		if(position.x<=0 || position.x>=window.getSize().x-radius) reflect_horizontal(sf::degrees(angle));
-		else if(position.y>=window.getSize().y) reflect_vertical(sf::degrees(angle));
-		sf::Vector2f displacement=sf::Vector2f(speed*elapsed, sf::degrees(angle));
+		sf::Vector2f displacement=sf::Vector2f(speed*elapsed, angle);
 		position+=displacement;
 	}
 	void draw(sf::RenderWindow& window)
@@ -87,12 +89,15 @@ struct Paddle
 	void move_left(float elapsed)
 	{
 		position.x-=speed*elapsed;
-		if(position.x<=0) position.x=0;
 	}
-	void move_right(float elapsed, sf::RenderWindow& window)
+	void move_right(float elapsed)
 	{
 		position.x+=speed*elapsed;
-		if(position.x>=window.getSize().x-size.x) position.x=window.getSize().x-size.x;
+	}
+
+	bool hit(Ball ball)
+	{
+		return (ball.angle.asDegrees()>=0) && (ball.position.y+(2*ball.radius)>=position.y) && (ball.position.x>=position.x && ball.position.x+(2*ball.radius)<=position.x+size.x);
 	}
 };
 
@@ -105,14 +110,38 @@ struct State
 	bool move_paddle_right=false;
 
 	State() {}
+
+	void field_limits(sf::RenderWindow& window)
+	{
+		//paddle
+		if(paddle.position.x<=0) paddle.position.x=0;
+		if(paddle.position.x>=window.getSize().x-paddle.size.x) paddle.position.x=window.getSize().x-paddle.size.x;
+		//ball
+		if(ball.position.x<=0 || ball.position.x>=window.getSize().x-(2*ball.radius)) ball.reflect_horizontal();
+		if(ball.position.y<=0) ball.reflect_vertical();
+		if(ball.position.y>=window.getSize().y) restart();
+	}
+	void collisions(sf::RenderWindow& window)
+	{
+		field_limits(window);
+		if(paddle.hit(ball)) ball.reflect_vertical();
+	}
+
+	void restart()
+	{
+		pause=true;
+		ball=Ball();
+		paddle=Paddle();
+	}
 	void update(float elapsed, sf::RenderWindow& window)
 	{
 		if(!pause)
 		{
 			ball.move(elapsed);
 			if(move_paddle_left) paddle.move_left(elapsed);
-			if(move_paddle_right) paddle.move_right(elapsed, window);
+			if(move_paddle_right) paddle.move_right(elapsed);
 		}
+		collisions(window);
 	}
 	void draw(sf::RenderWindow& window)
 	{
