@@ -5,8 +5,14 @@
 #include <SFML/Window.hpp>
 #include <iostream>
 
+
+
 int main()
 {
+    /////////////////////////////
+    // Window and OpenGL setup //
+    /////////////////////////////
+
     // Options for OpenGL context, to be kept in sync with GLAD options!
     sf::ContextSettings settings;
     settings.depthBits = 32;
@@ -34,10 +40,10 @@ int main()
 
     // Check what we have received back
     sf::ContextSettings gotten = window.getSettings();
-    std::cout << "depth bits:" << gotten.depthBits << std::endl;
-    std::cout << "stencil bits:" << gotten.stencilBits << std::endl;
-    std::cout << "antialiasing level:" << gotten.antiAliasingLevel << std::endl;
-    std::cout << "version:" << gotten.majorVersion << "." << gotten.minorVersion << std::endl;
+    std::cout << "depth bits: " << gotten.depthBits << std::endl;
+    std::cout << "stencil bits: " << gotten.stencilBits << std::endl;
+    std::cout << "antialiasing level: " << gotten.antiAliasingLevel << std::endl;
+    std::cout << "version: " << gotten.majorVersion << "." << gotten.minorVersion << std::endl;
 
     // GLAD magic!
     // SFML provides a function to retrieve OpenGL's functions at runtime
@@ -48,58 +54,13 @@ int main()
         return 1;
     }
     // Final check that we got what we want
-    std::cout << "GLAD GL version"<<GLAD_VERSION_MAJOR(version)<<"."<< GLAD_VERSION_MINOR(version)<<std::endl;
+    std::cout << "GLAD GL version: "<<GLAD_VERSION_MAJOR(version)<<"."<< GLAD_VERSION_MINOR(version)<<std::endl;
 
-    //vertices
-    float points[]={
-        0.0, 0.5, 0.0,
-        0.5, -0.5, 0.0,
-        -0.5, -0.5, 0.0,
-    };
 
-    //vertex buffer object
-    GLuint vbo=0;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+    ///////////////
+    // Main loop //
+    ///////////////
 
-    //vertex array object
-    GLuint vao=0;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);  //ha come parametri impliciti sia vbo che vao
-
-    const char* vertex_shader=
-        "#version 410 core\n"
-        "layout(location=0) in vec3 vp;"
-        "void main(){"
-        "gl_Position=vec4(vp, 1.0); }";
-    const char* fragment_shader=
-        "#version 410 core\n"
-        "out vec4 frag_color;"
-        "void main(){"
-        "frag_color=vec4(0.5, 0.0, 0.5, 1.0); }";
-    
-    GLuint vertex=glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vertex_shader, NULL);
-    glCompileShader(vertex);
-    GLuint fragment=glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &fragment_shader, NULL);
-    glCompileShader(fragment);
-
-    GLuint shader_program=glCreateProgram();
-    glAttachShader(shader_program, vertex);
-    glAttachShader(shader_program, fragment);
-    glLinkProgram(shader_program);
-
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
-    glUseProgram(shader_program);
-    glBindVertexArray(vao);
-
-    // run the main loop
     bool running = true;
     while (running)
     {
@@ -122,7 +83,6 @@ int main()
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // draw here
-        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         // end the current frame (internally swaps the front and back buffers)
         window.display();
